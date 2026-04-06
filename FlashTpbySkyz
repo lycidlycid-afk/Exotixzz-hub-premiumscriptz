@@ -1,0 +1,452 @@
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+local Players                = game:GetService("Players")
+local UserInputService       = game:GetService("UserInputService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+local VirtualInputManager    = game:GetService("VirtualInputManager")
+local StarterGui             = game:GetService("StarterGui")
+local TweenService           = game:GetService("TweenService")
+local RunService             = game:GetService("RunService")
+
+local Player = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local CFG = {
+    InvisTool        = "Invisibility Cloak",
+    TpDelay          = 0.01,
+    SafetyDelay      = 0.2,
+    Waypoints = {
+        Vector3.new(-357.30, -7.00, 113.60),
+        Vector3.new(-381.00, -7.00, -43.50),
+        Vector3.new(-412.43, -6.50, 102.23),
+        Vector3.new(-411.05, -6.50,  54.73),
+        Vector3.new(-410.00, -6.50, -14.58),
+        Vector3.new(-377.28, -7.00,  14.31),
+        Vector3.new(-345.77, -7.00,  17.01),
+        Vector3.new(-332.52, -4.79,  18.41),
+    },
+    POS_CARPET       = Vector3.new(-332, -7, 67),
+    POS_FLASH_TARGET = Vector3.new(-331.8, -4.7, 27.5),
+}
+
+local State = {
+    AutoFlash   = false,
+    AutoBlock   = true,
+    Boost       = true,
+    InvisFinish = false,
+    Running     = false,
+    Keybind     = Enum.KeyCode.T,
+    Binding     = false,
+}
+
+local COL_ON    = Color3.fromRGB(80, 255, 80)
+local COL_OFF   = Color3.fromRGB(255, 120, 0)
+local COL_WHITE = Color3.fromRGB(230, 230, 230)
+local COL_STEAL = Color3.fromRGB(255, 230, 0)
+local COL_BG    = Color3.fromRGB(10, 10, 10)
+local COL_BTN   = Color3.fromRGB(18, 18, 18)
+local COL_TITLE = Color3.fromRGB(200, 200, 200)
+local COL_GREY  = Color3.fromRGB(90, 90, 90)
+
+if Player.PlayerGui:FindFirstChild("ExotixzzHubUI") then
+    Player.PlayerGui.ExotixzzHubUI:Destroy()
+end
+
+local sg = Instance.new("ScreenGui", Player.PlayerGui)
+sg.Name = "ExotixzzHubUI"
+sg.ResetOnSpawn = false
+sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local main = Instance.new("Frame", sg)
+main.Name                   = "Main"
+main.Size                   = UDim2.fromOffset(190, 340)
+main.Position               = UDim2.fromScale(0.04, 0.12)
+main.BackgroundColor3       = COL_BG
+main.BackgroundTransparency = 0.05
+main.Active                 = true
+main.Draggable              = true
+main.ClipsDescendants       = false
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 8)
+local outerStroke = Instance.new("UIStroke", main)
+outerStroke.Color     = Color3.fromRGB(40, 40, 40)
+outerStroke.Thickness = 1
+
+local titleLbl = Instance.new("TextLabel", main)
+titleLbl.Size               = UDim2.new(1, 0, 0, 30)
+titleLbl.Position           = UDim2.fromOffset(0, 6)
+titleLbl.BackgroundTransparency = 1
+titleLbl.Text               = "https://discord.gg/3wYbVQbc7n"
+titleLbl.Font               = Enum.Font.GothamBold
+titleLbl.TextSize           = 13
+titleLbl.TextColor3         = COL_TITLE
+titleLbl.TextXAlignment     = Enum.TextXAlignment.Center
+
+local div0 = Instance.new("Frame", main)
+div0.Size             = UDim2.new(0.85, 0, 0, 1)
+div0.Position         = UDim2.new(0.075, 0, 0, 36)
+div0.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+div0.BorderSizePixel  = 0
+
+local statusLbl = Instance.new("TextLabel", main)
+statusLbl.Size               = UDim2.new(1, -16, 0, 14)
+statusLbl.Position           = UDim2.fromOffset(8, 323)
+statusLbl.BackgroundTransparency = 1
+statusLbl.Text               = "Ready  [T] to TP"
+statusLbl.Font               = Enum.Font.GothamMedium
+statusLbl.TextSize           = 9
+statusLbl.TextColor3         = COL_GREY
+statusLbl.TextXAlignment     = Enum.TextXAlignment.Center
+
+local function mkRow(labelText, yPos, textColor, clickFn)
+    local row = Instance.new("TextButton", main)
+    row.Size             = UDim2.new(1, -16, 0, 28)
+    row.Position         = UDim2.fromOffset(8, yPos)
+    row.BackgroundColor3 = COL_BTN
+    row.Text             = labelText
+    row.Font             = Enum.Font.GothamBold
+    row.TextSize         = 12
+    row.TextColor3       = textColor
+    row.AutoButtonColor  = false
+    row.BorderSizePixel  = 0
+    Instance.new("UICorner", row).CornerRadius = UDim.new(0, 5)
+    local s = Instance.new("UIStroke", row)
+    s.Color = Color3.fromRGB(35, 35, 35); s.Thickness = 1
+    row.MouseEnter:Connect(function()
+        TweenService:Create(row, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(28,28,28)}):Play()
+    end)
+    row.MouseLeave:Connect(function()
+        TweenService:Create(row, TweenInfo.new(0.12), {BackgroundColor3 = COL_BTN}):Play()
+    end)
+    if clickFn then row.MouseButton1Click:Connect(clickFn) end
+    return row
+end
+
+local autoFlashBtn = mkRow("AUTO FLASH: OFF",  44,  COL_OFF)
+local blockBtn     = mkRow("BLOCK: ON",         78,  COL_ON)
+local boostBtn     = mkRow("BOOST: ON",         112, COL_ON)
+local resetBtn     = mkRow("RESET",             146, COL_WHITE)
+local invisBtn     = mkRow("INVIS FINISH: OFF", 180, COL_OFF)
+local configBtn    = mkRow("CONFIG SAVE",       214, COL_WHITE)
+
+local stealBtn = Instance.new("TextButton", main)
+stealBtn.Size             = UDim2.new(1, -16, 0, 40)
+stealBtn.Position         = UDim2.fromOffset(8, 253)
+stealBtn.BackgroundColor3 = COL_STEAL
+stealBtn.Text             = "STEAL"
+stealBtn.Font             = Enum.Font.GothamBlack
+stealBtn.TextSize         = 18
+stealBtn.TextColor3       = Color3.fromRGB(0, 0, 0)
+stealBtn.AutoButtonColor  = false
+Instance.new("UICorner", stealBtn).CornerRadius = UDim.new(0, 6)
+stealBtn.MouseEnter:Connect(function()
+    TweenService:Create(stealBtn, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(255,245,50)}):Play()
+end)
+stealBtn.MouseLeave:Connect(function()
+    TweenService:Create(stealBtn, TweenInfo.new(0.12), {BackgroundColor3 = COL_STEAL}):Play()
+end)
+stealBtn.MouseButton1Down:Connect(function()
+    TweenService:Create(stealBtn, TweenInfo.new(0.06), {BackgroundColor3 = Color3.fromRGB(200,180,0)}):Play()
+end)
+stealBtn.MouseButton1Up:Connect(function()
+    TweenService:Create(stealBtn, TweenInfo.new(0.1), {BackgroundColor3 = COL_STEAL}):Play()
+end)
+
+local slapLbl = Instance.new("TextLabel", main)
+slapLbl.Size               = UDim2.new(1, 0, 0, 18)
+slapLbl.Position           = UDim2.fromOffset(0, 300)
+slapLbl.BackgroundTransparency = 1
+slapLbl.Text               = "SLAP"
+slapLbl.Font               = Enum.Font.GothamMedium
+slapLbl.TextSize           = 10
+slapLbl.TextColor3         = COL_GREY
+slapLbl.TextXAlignment     = Enum.TextXAlignment.Center
+
+local slapBtn = Instance.new("TextButton", main)
+slapBtn.Size               = UDim2.new(1, -16, 0, 18)
+slapBtn.Position           = UDim2.fromOffset(8, 300)
+slapBtn.BackgroundTransparency = 1
+slapBtn.Text               = ""
+slapBtn.AutoButtonColor    = false
+
+local function setStatus(txt, col)
+    statusLbl.Text      = txt
+    statusLbl.TextColor3 = col or COL_GREY
+    task.delay(3, function()
+        if statusLbl.Text == txt then
+            statusLbl.Text       = "Ready  [" .. State.Keybind.Name .. "] to TP"
+            statusLbl.TextColor3 = COL_GREY
+        end
+    end)
+end
+
+local function getClosest()
+    local myR = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+    if not myR then return nil end
+    local best, bd = nil, math.huge
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= Player and p.Character then
+            local r = p.Character:FindFirstChild("HumanoidRootPart")
+            if r then
+                local d = (myR.Position - r.Position).Magnitude
+                if d < bd then bd = d; best = p end
+            end
+        end
+    end
+    return best
+end
+
+local blockCooldown = false
+local function doBlock()
+    if blockCooldown then return end
+    blockCooldown = true
+    local tgt = getClosest()
+    if not tgt then
+        setStatus("No nearby player", Color3.fromRGB(255,100,100))
+        blockCooldown = false
+        return
+    end
+    pcall(function() StarterGui:SetCore("PromptBlockPlayer", tgt) end)
+    task.wait(0.4)
+    local vp = Camera.ViewportSize
+    for i = 1, 2 do
+        VirtualInputManager:SendMouseButtonEvent(vp.X/2, vp.Y*0.54, 0, true,  game, 1); task.wait(0.02)
+        VirtualInputManager:SendMouseButtonEvent(vp.X/2, vp.Y*0.54, 0, false, game, 1); task.wait(0.05)
+    end
+    setStatus("Player blocked!", Color3.fromRGB(80,255,80))
+    task.wait(2)
+    blockCooldown = false
+end
+
+local function fastTeleport(position)
+    local char = Player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if root then
+        root.CFrame = CFrame.new(position)
+        root.AssemblyLinearVelocity  = Vector3.zero
+        root.AssemblyAngularVelocity = Vector3.zero
+    end
+end
+
+local function equip(char, hum, n)
+    local t = Player.Backpack:FindFirstChild(n) or char:FindFirstChild(n)
+    if t then hum:EquipTool(t); return t end
+    for _, v in pairs(Player.Backpack:GetChildren()) do
+        if v:IsA("Tool") and v.Name:lower():find(n:lower()) then
+            hum:EquipTool(v); return v
+        end
+    end
+    return nil
+end
+
+local function RunPath()
+    if State.Running then return end
+    local char = Player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local hum  = char and char:FindFirstChild("Humanoid")
+    if not root or not hum then setStatus("No character", Color3.fromRGB(255,100,100)); return end
+
+    State.Running = true
+    stealBtn.Text      = "RUNNING..."
+    stealBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+
+    task.spawn(function()
+        for i = 1, #CFG.Waypoints do
+            if not State.Running or Player.Character ~= char then break end
+            fastTeleport(CFG.Waypoints[i])
+            setStatus("TP " .. i .. "/" .. #CFG.Waypoints, Color3.fromRGB(255,200,50))
+            task.wait(CFG.TpDelay)
+        end
+
+        if State.InvisFinish and State.Running then
+            task.wait(CFG.SafetyDelay)
+            local cloak = Player.Backpack:FindFirstChild(CFG.InvisTool)
+            if cloak then hum:EquipTool(cloak); cloak:Activate() end
+        end
+
+        State.Running = false
+        stealBtn.Text       = "STEAL"
+        stealBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+        setStatus("TP Complete!", Color3.fromRGB(80,255,80))
+    end)
+end
+
+local function doFlashTP()
+    local char = Player.Character
+    if not char then setStatus("No character", Color3.fromRGB(255,100,100)); return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChild("Humanoid")
+    if not hrp or not hum then return end
+
+    task.spawn(function()
+        local ok, err = pcall(function()
+
+            hrp.CFrame = CFrame.new(CFG.POS_CARPET)
+            local carpet = equip(char, hum, "Carpet")
+            if carpet then
+                local t0 = tick()
+                repeat task.wait(0.02) until char:FindFirstChild("Carpet") or tick()-t0 > 0.8
+                pcall(function() carpet:Activate() end)
+                task.wait(0.15)
+            end
+
+            local flash = equip(char, hum, "Flash")
+            if not flash then
+                setStatus("No Flash found", Color3.fromRGB(255,100,100))
+                return
+            end
+
+            local t1 = tick()
+            repeat task.wait(0.02) until char:FindFirstChild("Flash") or tick()-t1 > 1
+
+            hrp.CFrame = CFrame.new(
+                CFG.POS_CARPET,
+                Vector3.new(CFG.POS_FLASH_TARGET.X, CFG.POS_CARPET.Y, CFG.POS_FLASH_TARGET.Z)
+            )
+            task.wait(0.06)
+
+            local flashInChar = char:FindFirstChild("Flash")
+            if flashInChar then
+                pcall(function() flashInChar:Activate() end)
+            else
+
+                local vp = Camera.ViewportSize
+                VirtualInputManager:SendMouseButtonEvent(math.floor(vp.X/2), math.floor(vp.Y/2), 0, true,  game, 1)
+                task.wait(0.05)
+                VirtualInputManager:SendMouseButtonEvent(math.floor(vp.X/2), math.floor(vp.Y/2), 0, false, game, 1)
+            end
+
+            task.wait(0.1)
+            setStatus("Flash TP done!", Color3.fromRGB(255,150,50))
+        end)
+
+        if not ok then
+            setStatus("Flash TP error", Color3.fromRGB(255,100,100))
+            warn("[ExotixzzHub] doFlashTP: " .. tostring(err))
+        end
+    end)
+end
+
+local function toggle(key, btn, onLabel, offLabel, onFn, offFn)
+    State[key] = not State[key]
+    local on = State[key]
+    btn.Text       = on and onLabel or offLabel
+    btn.TextColor3 = on and COL_ON or COL_OFF
+    if on and onFn then onFn() end
+    if not on and offFn then offFn() end
+end
+
+autoFlashBtn.MouseButton1Click:Connect(function()
+    toggle("AutoFlash", autoFlashBtn, "AUTO FLASH: ON", "AUTO FLASH: OFF")
+    setStatus("Auto Flash " .. (State.AutoFlash and "ON" or "OFF"),
+        State.AutoFlash and COL_ON or COL_OFF)
+end)
+
+blockBtn.MouseButton1Click:Connect(function()
+    toggle("AutoBlock", blockBtn, "BLOCK: ON", "BLOCK: OFF")
+    setStatus("Auto Block " .. (State.AutoBlock and "ON" or "OFF"),
+        State.AutoBlock and COL_ON or COL_OFF)
+end)
+
+boostBtn.MouseButton1Click:Connect(function()
+    toggle("Boost", boostBtn, "BOOST: ON", "BOOST: OFF")
+    setStatus("Boost " .. (State.Boost and "ON" or "OFF"),
+        State.Boost and COL_ON or COL_OFF)
+end)
+
+resetBtn.MouseButton1Click:Connect(function()
+    State.AutoFlash = false; State.AutoBlock = false
+    State.Boost     = false; State.InvisFinish = false
+    State.Running   = false
+    autoFlashBtn.Text = "AUTO FLASH: OFF";  autoFlashBtn.TextColor3 = COL_OFF
+    blockBtn.Text     = "BLOCK: OFF";       blockBtn.TextColor3     = COL_OFF
+    boostBtn.Text     = "BOOST: OFF";       boostBtn.TextColor3     = COL_OFF
+    invisBtn.Text     = "INVIS FINISH: OFF"; invisBtn.TextColor3    = COL_OFF
+    stealBtn.Text = "STEAL"; stealBtn.TextColor3 = Color3.fromRGB(0,0,0)
+    setStatus("Reset done", Color3.fromRGB(80,255,80))
+end)
+
+invisBtn.MouseButton1Click:Connect(function()
+    toggle("InvisFinish", invisBtn, "INVIS FINISH: ON", "INVIS FINISH: OFF")
+    setStatus("Invis Finish " .. (State.InvisFinish and "ON" or "OFF"),
+        State.InvisFinish and COL_ON or COL_OFF)
+end)
+
+configBtn.MouseButton1Click:Connect(function()
+    configBtn.Text = "SAVED!"
+    task.delay(1.5, function() configBtn.Text = "CONFIG SAVE" end)
+    setStatus("Config saved", Color3.fromRGB(80,255,80))
+end)
+
+stealBtn.MouseButton1Click:Connect(function()
+    if State.AutoFlash then
+        doFlashTP()
+    else
+        RunPath()
+    end
+end)
+
+slapBtn.MouseButton1Click:Connect(doBlock)
+
+RunService.Heartbeat:Connect(function()
+    if not State.Boost then return end
+    local char = Player.Character
+    local hrp  = char and char:FindFirstChild("HumanoidRootPart")
+    local hum  = char and char:FindFirstChildOfClass("Humanoid")
+    if hrp and hum then
+        local md = hum.MoveDirection
+        if md.Magnitude > 0 then
+            hrp.AssemblyLinearVelocity = Vector3.new(
+                md.X * 60,
+                hrp.AssemblyLinearVelocity.Y,
+                md.Z * 60
+            )
+        end
+    end
+end)
+
+ProximityPromptService.PromptTriggered:Connect(function(prompt, who)
+    if State.AutoBlock and who == Player then
+        local at = string.lower(prompt.ActionText)
+        local ot = string.lower(prompt.ObjectText)
+        if at:find("steal") or ot:find("steal") then
+            doBlock()
+        end
+    end
+end)
+
+ProximityPromptService.PromptTriggered:Connect(function(prompt, who)
+    if State.AutoFlash and who == Player then
+        local at = string.lower(prompt.ActionText)
+        local ot = string.lower(prompt.ObjectText)
+        if at:find("steal") or ot:find("steal") then
+            doFlashTP()
+        end
+    end
+end)
+
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.KeyCode == State.Keybind then
+        if State.AutoFlash then
+            doFlashTP()
+        else
+            RunPath()
+        end
+    end
+end)
+
+local function onChar(char)
+    State.Running = false
+    stealBtn.Text = "STEAL"
+    local hum = char:WaitForChild("Humanoid", 5)
+    if hum then
+        hum.Died:Connect(function()
+            State.Running = false
+            stealBtn.Text = "STEAL"
+        end)
+    end
+end
+Player.CharacterAdded:Connect(onChar)
+if Player.Character then task.spawn(function() onChar(Player.Character) end) end
+
+setStatus("Loaded  [" .. State.Keybind.Name .. "] to TP", Color3.fromRGB(80,255,80))
