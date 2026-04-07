@@ -1,0 +1,117 @@
+--// X HUB (Clean Animated Reset UI)
+
+local player = game.Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+
+-- REMOVE OLD
+if game.CoreGui:FindFirstChild("XHub") then
+	game.CoreGui.XHub:Destroy()
+end
+
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "XHub"
+
+--------------------------------------------------
+-- 🧊 MAIN UI (SMALLER NOW)
+--------------------------------------------------
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0,320,0,180) -- smaller background
+main.Position = UDim2.new(0.5,-160,0.5,-90)
+main.BackgroundColor3 = Color3.fromRGB(15,15,20)
+main.BackgroundTransparency = 1
+main.Active = true
+main.Draggable = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,14)
+
+-- Animation
+main:TweenSize(UDim2.new(0,340,0,200), "Out", "Quad", 0.25, true)
+TweenService:Create(main, TweenInfo.new(0.35), {
+	BackgroundTransparency = 0
+}):Play()
+
+-- GLOW
+local stroke = Instance.new("UIStroke", main)
+stroke.Thickness = 3
+
+--------------------------------------------------
+-- TITLE (UPDATED TEXT)
+--------------------------------------------------
+
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1,0,0,50)
+title.Position = UDim2.new(0,0,0,5)
+title.Text = "Exotixzz Invis-Steal"
+title.TextScaled = true
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBlack
+
+--------------------------------------------------
+-- 🌈 RGB GLOW
+--------------------------------------------------
+
+task.spawn(function()
+	while true do
+		for i = 0,1,0.01 do
+			local color = Color3.fromHSV(i,1,1)
+			stroke.Color = color
+			title.TextColor3 = color
+			task.wait(0.02)
+		end
+	end
+end)
+
+--------------------------------------------------
+-- BUTTON HOLDER
+--------------------------------------------------
+
+local holder = Instance.new("Frame", main)
+holder.Size = UDim2.new(1,0,1,-70)
+holder.Position = UDim2.new(0,0,0,60)
+holder.BackgroundTransparency = 1
+
+local layout = Instance.new("UIListLayout", holder)
+layout.VerticalAlignment = Enum.VerticalAlignment.Center
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+--------------------------------------------------
+-- RESET BUTTON
+--------------------------------------------------
+
+local reset = Instance.new("TextButton", holder)
+reset.Size = UDim2.new(0.8,0,0,70) -- slightly smaller to fit nicely
+reset.BackgroundColor3 = Color3.fromRGB(35,35,50)
+reset.Text = "Invis (Click while stealinng)"
+reset.TextScaled = true
+reset.TextColor3 = Color3.new(1,1,1)
+reset.Font = Enum.Font.GothamBold
+
+Instance.new("UICorner", reset).CornerRadius = UDim.new(0,12)
+
+local glow = Instance.new("UIStroke", reset)
+glow.Thickness = 2
+
+-- Hover
+reset.MouseEnter:Connect(function()
+	TweenService:Create(reset, TweenInfo.new(0.15), {
+		Size = UDim2.new(0.85,0,0,75),
+		BackgroundColor3 = Color3.fromRGB(50,50,70)
+	}):Play()
+end)
+
+reset.MouseLeave:Connect(function()
+	TweenService:Create(reset, TweenInfo.new(0.15), {
+		Size = UDim2.new(0.8,0,0,70),
+		BackgroundColor3 = Color3.fromRGB(35,35,50)
+	}):Play()
+end)
+
+-- Click
+reset.MouseButton1Click:Connect(function()
+	TweenService:Create(reset, TweenInfo.new(0.1), {
+		Size = UDim2.new(0.75,0,0,65)
+	}):Play()
+	
+	task.wait(0.1)
+	player.Character:BreakJoints()
+end)
