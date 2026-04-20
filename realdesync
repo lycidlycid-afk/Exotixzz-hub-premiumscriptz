@@ -1,0 +1,243 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+local lp = Players.LocalPlayer
+local playerGui = lp:WaitForChild("PlayerGui")
+
+for _, g in pairs(playerGui:GetChildren()) do
+    if g.Name == "Exotixzz Hub" or g.Name == "ExotixzzHubNotify" then g:Destroy() end
+end
+
+local hasRakNet = (typeof(raknet) == "table" or typeof(raknet) == "userdata") and true or false
+
+local C = {
+    Bg = Color3.fromRGB(10, 10, 14), Panel = Color3.fromRGB(16, 16, 22),
+    Border = Color3.fromRGB(50, 30, 80), Accent = Color3.fromRGB(90, 50, 160),
+    BtnIdle = Color3.fromRGB(25, 18, 40), BtnBorder = Color3.fromRGB(130, 70, 220),
+    BtnHover = Color3.fromRGB(35, 25, 55), BtnPress = Color3.fromRGB(18, 12, 30),
+    BtnText = Color3.fromRGB(200, 170, 255), Purple = Color3.fromRGB(150, 80, 255),
+    Yellow = Color3.fromRGB(255, 210, 40), StatusOk = Color3.fromRGB(150, 110, 255),
+    StatusWrn = Color3.fromRGB(230, 190, 40), Dim = Color3.fromRGB(70, 60, 90),
+    Red = Color3.fromRGB(255, 60, 60), RedBg = Color3.fromRGB(50, 15, 15),
+    RedBorder = Color3.fromRGB(120, 30, 30),
+}
+
+local tFast = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+local function make(class, props)
+    local inst = Instance.new(class)
+    for k, v in pairs(props) do
+        if k ~= "Parent" then inst[k] = v end
+    end
+    if props.Parent then inst.Parent = props.Parent end
+    return inst
+end
+
+local function rc(parent, r)
+    return make("UICorner", {CornerRadius = UDim.new(0, r), Parent = parent})
+end
+
+local function rs(parent, color, thick, t)
+    return make("UIStroke", {Color = color, Thickness = thick or 1, Transparency = t or 0, Parent = parent})
+end
+
+local function showNotification(msg, duration)
+    for _, g in pairs(playerGui:GetChildren()) do
+        if g.Name == "ExotixzzHubNotify" then g:Destroy() end
+    end
+    local ng = make("ScreenGui", {
+        Name = "ExotixzzHubNotify", ResetOnSpawn = false,
+        DisplayOrder = 1000, ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        Parent = playerGui
+    })
+    local bar = make("Frame", {
+        Size = UDim2.new(1, 0, 0, 0), Position = UDim2.new(0, 0, 0, 0),
+        BackgroundColor3 = C.RedBg, BorderSizePixel = 0, Parent = ng
+    })
+    rs(bar, C.RedBorder, 1, 0.3)
+    make("TextLabel", {
+        Size = UDim2.new(0, 36, 1, 0), Position = UDim2.new(0, 12, 0, 0),
+        BackgroundTransparency = 1, Text = "!", TextColor3 = C.Red,
+        TextSize = 18, Font = Enum.Font.GothamBold, Parent = bar
+    })
+    make("TextLabel", {
+        Size = UDim2.new(1, -56, 1, 0), Position = UDim2.new(0, 48, 0, 0),
+        BackgroundTransparency = 1, Text = msg, TextColor3 = Color3.fromRGB(230, 180, 180),
+        TextSize = 13, Font = Enum.Font.GothamMedium,
+        TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true, Parent = bar
+    })
+    make("Frame", {
+        Size = UDim2.new(1, 0, 0, 2), Position = UDim2.new(0, 0, 1, -2),
+        BackgroundColor3 = C.Red, BackgroundTransparency = 0.4,
+        BorderSizePixel = 0, Parent = bar
+    })
+    TweenService:Create(bar, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+        Size = UDim2.new(1, 0, 0, 42)
+    }):Play()
+    task.delay(duration or 5, function()
+        local out = TweenService:Create(bar, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Size = UDim2.new(1, 0, 0, 0)
+        })
+        out.Completed:Connect(function() ng:Destroy() end)
+        out:Play()
+    end)
+end
+
+if not hasRakNet then
+    showNotification("Your executor does not have the RakNet library so you will not be able to proceed.", 8)
+    return
+end
+
+local gui = make("ScreenGui", {
+    Name = "ExotixzzHub", ResetOnSpawn = false,
+    ZIndexBehavior = Enum.ZIndexBehavior.Sibling, DisplayOrder = 999,
+    Parent = playerGui
+})
+
+local main = make("Frame", {
+    Size = UDim2.new(0, 200, 0, 138), Position = UDim2.new(0.5, -100, 0.5, -69),
+    BackgroundColor3 = C.Bg, BorderSizePixel = 0,
+    Active = true, Draggable = true, Parent = gui
+})
+rc(main, 10)
+rs(main, C.Border, 1.5, 0.3)
+
+local header = make("Frame", {
+    Size = UDim2.new(1, 0, 0, 36), BackgroundColor3 = C.Panel,
+    BorderSizePixel = 0, Parent = main
+})
+rc(header, 10)
+make("Frame", {
+    Size = UDim2.new(1, 0, 0, 12), Position = UDim2.new(0, 0, 1, -12),
+    BackgroundColor3 = C.Panel, BorderSizePixel = 0, Parent = header
+})
+make("Frame", {
+    Size = UDim2.new(0.85, 0, 0, 1), Position = UDim2.new(0.075, 0, 1, 0),
+    BackgroundColor3 = C.Accent, BackgroundTransparency = 0.5,
+    BorderSizePixel = 0, Parent = header
+})
+make("TextLabel", {
+    Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, RichText = true,
+    Text = '<font color="#9650FF">Exotixzz</font> <font color="#C8AAFF">Hub</font>',
+    TextSize = 16, Font = Enum.Font.GothamBold, Parent = header
+})
+
+local btnWrap = make("Frame", {
+    Size = UDim2.new(1, -20, 0, 40), Position = UDim2.new(0, 10, 0, 46),
+    BackgroundTransparency = 1, Parent = main
+})
+
+local btnGlow = make("ImageLabel", {
+    Size = UDim2.new(1, 26, 1, 26), AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.new(0.5, 0, 0.5, 0), BackgroundTransparency = 1,
+    Image = "rbxassetid://6015897843", ImageColor3 = C.Purple,
+    ImageTransparency = 0.85, ScaleType = Enum.ScaleType.Slice,
+    SliceCenter = Rect.new(49, 49, 450, 450), Parent = btnWrap
+})
+
+local btn = make("TextButton", {
+    Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = C.BtnIdle,
+    BorderSizePixel = 0, Text = "", AutoButtonColor = false, Parent = btnWrap
+})
+rc(btn, 8)
+local btnStroke = rs(btn, C.BtnBorder, 1.5, 0.2)
+
+local btnLabel = make("TextLabel", {
+    Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
+    Text = "DESYNC", TextColor3 = C.BtnText,
+    TextSize = 15, Font = Enum.Font.GothamBold, Parent = btn
+})
+
+local statusText = make("TextLabel", {
+    Size = UDim2.new(1, -20, 0, 16), Position = UDim2.new(0, 10, 0, 92),
+    BackgroundTransparency = 1, Text = "Ready", TextColor3 = C.StatusOk,
+    TextSize = 11, Font = Enum.Font.GothamMedium, Parent = main
+})
+
+make("TextLabel", {
+    Size = UDim2.new(1, 0, 0, 12), Position = UDim2.new(0, 0, 1, -18),
+    BackgroundTransparency = 1, Text = "Exotixzz Hub v1.0",
+    TextColor3 = C.Dim, TextSize = 9, Font = Enum.Font.Gotham,
+    TextTransparency = 0.4, Parent = main
+})
+
+local isDesyncing = false
+
+local function setReady()
+    isDesyncing = false
+    btnLabel.Text = "DESYNC"
+    btnLabel.TextColor3 = C.BtnText
+    statusText.Text = "Ready"
+    statusText.TextColor3 = C.StatusOk
+    TweenService:Create(btn, tFast, {BackgroundColor3 = C.BtnIdle}):Play()
+    TweenService:Create(btnStroke, tFast, {Color = C.BtnBorder, Transparency = 0.2}):Play()
+    TweenService:Create(btnGlow, tFast, {ImageColor3 = C.Purple, ImageTransparency = 0.85}):Play()
+end
+
+btn.MouseEnter:Connect(function()
+    if isDesyncing then return end
+    TweenService:Create(btn, tFast, {BackgroundColor3 = C.BtnHover}):Play()
+    TweenService:Create(btnStroke, tFast, {Transparency = 0}):Play()
+    TweenService:Create(btnGlow, tFast, {ImageTransparency = 0.75}):Play()
+end)
+
+btn.MouseLeave:Connect(function()
+    if isDesyncing then return end
+    TweenService:Create(btn, tFast, {BackgroundColor3 = C.BtnIdle}):Play()
+    TweenService:Create(btnStroke, tFast, {Transparency = 0.2}):Play()
+    TweenService:Create(btnGlow, tFast, {ImageTransparency = 0.85}):Play()
+end)
+
+btn.MouseButton1Click:Connect(function()
+    if isDesyncing then return end
+    isDesyncing = true
+
+    TweenService:Create(btn, tFast, {BackgroundColor3 = C.BtnPress}):Play()
+    TweenService:Create(btnStroke, tFast, {Color = C.Yellow, Transparency = 0}):Play()
+    TweenService:Create(btnGlow, tFast, {ImageColor3 = C.Yellow, ImageTransparency = 0.75}):Play()
+    btnLabel.Text = "DESYNCING"
+    btnLabel.TextColor3 = C.Yellow
+    statusText.Text = "DESYNCING"
+    statusText.TextColor3 = C.StatusWrn
+
+    local respawned = false
+
+    local charConn
+    charConn = lp.CharacterAdded:Connect(function(newChar)
+        charConn:Disconnect()
+        respawned = true
+        newChar:WaitForChild("Humanoid")
+        task.wait(0.5)
+        setReady()
+    end)
+
+    local char = lp.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.Health = -math.huge
+        end
+    end
+
+    statusText.Text = "Waiting..."
+    task.wait(0.3)
+    raknet.desync(true)
+
+    task.spawn(function()
+        local waited = 0
+        while not respawned and waited < 15 do
+            task.wait(0.25)
+            waited += 0.25
+        end
+        if not respawned then
+            if charConn.Connected then charConn:Disconnect() end
+            setReady()
+        end
+    end)
+end)
+
+main.Size = UDim2.new(0, 200, 0, 0)
+main.BackgroundTransparency = 1
+TweenService:Create(main, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Size = UDim2.new(0, 200, 0, 138), BackgroundTransparency = 0
+}):Play()
